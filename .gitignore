@@ -42,6 +42,3 @@ next-env.d.ts
 # environment & config secrets
 .env
 .env*.local
-
-# private/uncommitted files
-LICENSE
