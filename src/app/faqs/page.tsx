@@ -1,13 +1,64 @@
-import { getFAQs } from "@/lib/sheets";
+"use client";
+
+import { useState, useEffect } from "react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { fallbackFAQs, parseCSV, type FAQItem } from "@/lib/sheets";
 
-export const metadata = {
-  title: "FAQs | Loopgro Store",
-  description: "Frequently Asked Questions about orders, shipping, and products.",
-};
+export default function FAQsPage() {
+  const [faqs, setFaqs] = useState<FAQItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function FAQsPage() {
-  const faqs = await getFAQs();
+  useEffect(() => {
+    document.title = "FAQs | Loopgro Store";
+
+    const fetchFAQs = async () => {
+      const sheetId = process.env.NEXT_PUBLIC_FAQS_SHEET_ID;
+      if (!sheetId) {
+        setFaqs(fallbackFAQs);
+        setLoading(false);
+        return;
+      }
+
+      const baseUrl = sheetId.startsWith("https://")
+        ? sheetId
+        : `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+
+      const url = baseUrl + (baseUrl.includes("?") ? "&" : "?") + `t=${Date.now()}`;
+
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) throw new Error("Failed to fetch FAQs from Google Sheets");
+        const text = await response.text();
+        const rows = parseCSV(text);
+
+        if (rows.length <= 1) {
+          setFaqs(fallbackFAQs);
+        } else {
+          const parsed = rows.slice(1).map((row) => ({
+            question: row[0] || "FAQ Question",
+            answer: row[1] || "",
+            category: row[2] || "General",
+          }));
+          setFaqs(parsed);
+        }
+      } catch (error) {
+        console.error("Failed to fetch FAQs, using fallback:", error);
+        setFaqs(fallbackFAQs);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFAQs();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] w-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-solid border-white border-t-transparent" />
+      </div>
+    );
+  }
 
   // Group FAQs by category
   const groupedFAQs = faqs.reduce((acc, faq) => {
@@ -50,7 +101,7 @@ export default async function FAQsPage() {
                       <AccordionTrigger className="text-left text-sm font-semibold py-4 text-white hover:text-gray-300 transition-colors">
                         {item.question}
                       </AccordionTrigger>
-                      <AccordionContent className="text-color-secondary text-sm leading-relaxed pb-4">
+                      <AccordionContent className="text-sm text-color-secondary leading-relaxed pb-4">
                         {item.answer}
                       </AccordionContent>
                     </AccordionItem>

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { CartLink } from "./CartLink";
 /** ICONS */
-import { FiMenu } from "react-icons/fi";
+import { FiMenu, FiBookOpen } from "react-icons/fi";
 
 import { useQuery } from "@tanstack/react-query";
 import { getShopifyCollections } from "@/app/actions";
@@ -88,8 +88,15 @@ export const Navbar = () => {
       {/* Search Input */}
       <SearchInput />
 
-      {/* Cart Button */}
       <ul className="flex gap-2">
+        <li className="flex items-center justify-center">
+          <Link
+            href="/blogs"
+            className="text-sm py-2 px-3 rounded-md font-semibold transition-all text-color-tertiary hover:bg-background-tertiary"
+          >
+            Blogs
+          </Link>
+        </li>
         <li className="flex items-center justify-center">
           <CartLink />
         </li>

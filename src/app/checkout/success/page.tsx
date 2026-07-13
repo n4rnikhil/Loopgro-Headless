@@ -1,11 +1,16 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+
 function SuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderName = searchParams.get("order") || "#0000";
+
+  useEffect(() => {
+    document.title = "Order Confirmed | Loopgro Store";
+  }, []);
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 sm:px-6 lg:px-8">

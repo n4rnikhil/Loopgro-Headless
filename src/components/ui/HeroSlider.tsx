@@ -24,7 +24,7 @@ const slides: Slide[] = [
     buttonLink: "/hydrogen",
   },
   {
-    image: "https://images.unsplash.com/photo-1551698618-1ffdfe1d9772?w=1600",
+    image: "https://cdn.pixabay.com/photo/2015/06/19/21/24/avenue-815297_1280.jpg",
     subtitle: "RIDE WITHOUT BOUNDARIES",
     title: "PREMIUM FLEX DESIGNS",
     description: "Whether you favor the terrain park or untracked backcountry powder, we have the perfect flex profile for you.",
@@ -32,7 +32,7 @@ const slides: Slide[] = [
     buttonLink: "/automated-collection",
   },
   {
-    image: "https://images.unsplash.com/photo-1520690216127-6f7312c322b6?w=1600",
+    image: "https://depositphotos-blog.s3.eu-west-1.amazonaws.com/uploads/2017/07/Soothing-nature-backgrounds-2.jpg",
     subtitle: "COMPLETE OVERHAUL",
     title: "TUNED TO PERFECTION",
     description: "Shop custom ski wax, tuning kits, and protective accessories to maintain speed and control on high-altitude runs.",

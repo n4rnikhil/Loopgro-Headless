@@ -1130,6 +1130,7 @@ export async function createAdminOrder(
       draftOrderCreate(input: $input) {
         draftOrder {
           id
+          totalPrice
         }
         userErrors {
           field
@@ -1140,8 +1141,8 @@ export async function createAdminOrder(
   `;
 
   const draftOrderCompleteMutation = `
-    mutation draftOrderComplete($id: ID!) {
-      draftOrderComplete(id: $id) {
+    mutation draftOrderComplete($id: ID!, $paymentPending: Boolean) {
+      draftOrderComplete(id: $id, paymentPending: $paymentPending) {
         draftOrder {
           order {
             id
@@ -1201,11 +1202,12 @@ export async function createAdminOrder(
     throw new Error("Draft order was not returned from Shopify.");
   }
 
-  // Complete Draft Order (which marks it as paid and creates the real Order)
+  // Complete Draft Order (marks the order as PAID immediately)
   const completeRes = await shopifyAdminFetch<any>({
     query: draftOrderCompleteMutation,
     variables: {
       id: draftOrder.id,
+      paymentPending: false,
     },
   });
 

@@ -16,7 +16,7 @@ export interface FAQItem {
 }
 
 // Fallback Mock Blog Posts
-const fallbackBlogs: BlogPost[] = [
+export const fallbackBlogs: BlogPost[] = [
   {
     title: "How to Choose the Perfect Snowboard Flex",
     author: "Hannah Ridge",
@@ -44,7 +44,7 @@ const fallbackBlogs: BlogPost[] = [
 ];
 
 // Fallback Mock FAQs
-const fallbackFAQs: FAQItem[] = [
+export const fallbackFAQs: FAQItem[] = [
   {
     question: "What is your return policy?",
     answer: "We offer a 30-day return window on all unused snowboards and gear. Items must be returned in their original packaging with all tags attached. Return shipping fees are covered by the buyer unless the item arrived damaged.",
@@ -67,7 +67,7 @@ const fallbackFAQs: FAQItem[] = [
   }
 ];
 
-function parseCSV(csvText: string): string[][] {
+export function parseCSV(csvText: string): string[][] {
   const result: string[][] = [];
   let row: string[] = [];
   let inQuotes = false;
@@ -117,10 +117,12 @@ export const getBlogPosts = cache(async (): Promise<BlogPost[]> => {
     return fallbackBlogs;
   }
 
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+  const url = sheetId.startsWith("https://")
+    ? sheetId
+    : `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
 
   try {
-    const response = await fetch(url, { next: { revalidate: 3600 } }); // cache for 1 hour
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) throw new Error("Network response was not ok");
     const text = await response.text();
     const rows = parseCSV(text);
@@ -153,10 +155,12 @@ export const getFAQs = cache(async (): Promise<FAQItem[]> => {
     return fallbackFAQs;
   }
 
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+  const url = sheetId.startsWith("https://")
+    ? sheetId
+    : `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
 
   try {
-    const response = await fetch(url, { next: { revalidate: 3600 } }); // cache for 1 hour
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) throw new Error("Network response was not ok");
     const text = await response.text();
     const rows = parseCSV(text);

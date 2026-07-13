@@ -159,7 +159,35 @@ export async function applyShopifyCartDiscount(
   return await updateCartDiscount(cartId, discountCodes);
 }
 
+import Stripe from "stripe";
 import { createAdminOrder } from "@/lib/shopify";
+
+function getStripeInstance() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("Missing STRIPE_SECRET_KEY in environment variables.");
+  }
+  return new Stripe(secretKey);
+}
+
+export async function createPaymentIntentAction(
+  amount: number
+): Promise<{ clientSecret: string | null; error?: string }> {
+  try {
+    const stripe = getStripeInstance();
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: "eur",
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+    return { clientSecret: paymentIntent.client_secret };
+  } catch (err: any) {
+    console.error("createPaymentIntentAction error:", err);
+    return { clientSecret: null, error: err.message || "Failed to create payment intent." };
+  }
+}
 
 export interface CheckoutInput {
   email: string;
@@ -173,7 +201,7 @@ export interface CheckoutInput {
   phone?: string;
 }
 
-export async function submitCheckoutAction(
+export async function createShopifyOrderAction(
   cartId: string,
   shippingAddress: CheckoutInput
 ): Promise<{ success: boolean; orderName?: string; error?: string }> {
@@ -198,11 +226,11 @@ export async function submitCheckoutAction(
       success: true,
       orderName: orderResult.orderName,
     };
-  } catch (error: any) {
-    console.error("Checkout server action error:", error);
+  } catch (err: any) {
+    console.error("createShopifyOrderAction error:", err);
     return {
       success: false,
-      error: error.message || "An unexpected error occurred during checkout.",
+      error: err.message || "Failed to create order in Shopify.",
     };
   }
 }
