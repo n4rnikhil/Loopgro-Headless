@@ -158,3 +158,51 @@ export async function applyShopifyCartDiscount(
 ): Promise<Cart> {
   return await updateCartDiscount(cartId, discountCodes);
 }
+
+import { createAdminOrder } from "@/lib/shopify";
+
+export interface CheckoutInput {
+  email: string;
+  firstName: string;
+  lastName: string;
+  address1: string;
+  city: string;
+  province?: string;
+  country: string;
+  zip: string;
+  phone?: string;
+}
+
+export async function submitCheckoutAction(
+  cartId: string,
+  shippingAddress: CheckoutInput
+): Promise<{ success: boolean; orderName?: string; error?: string }> {
+  try {
+    const cart = await getCart(cartId);
+    if (!cart || cart.items.length === 0) {
+      return { success: false, error: "Cart is empty or not found." };
+    }
+
+    const lineItems = cart.items.map((item) => ({
+      variantId: item.variant.id,
+      quantity: item.quantity,
+    }));
+
+    const orderResult = await createAdminOrder(
+      lineItems,
+      shippingAddress,
+      shippingAddress.email
+    );
+
+    return {
+      success: true,
+      orderName: orderResult.orderName,
+    };
+  } catch (error: any) {
+    console.error("Checkout server action error:", error);
+    return {
+      success: false,
+      error: error.message || "An unexpected error occurred during checkout.",
+    };
+  }
+}

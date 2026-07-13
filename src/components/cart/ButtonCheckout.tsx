@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-/** FUNCTIONALITY */
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 /** COMPONENTS */
 import LoadingButton from "@/components/ui/loadingButton";
 
@@ -13,15 +12,11 @@ interface ButtonCheckoutProps {
 
 export const ButtonCheckout = ({ checkoutUrl, disabled }: ButtonCheckoutProps) => {
   const [isPending, setIsPending] = useState(false);
+  const router = useRouter();
 
   const handleCheckout = () => {
-    if (!checkoutUrl) {
-      toast.error("Checkout URL is not available. Please try again.");
-      return;
-    }
-
     setIsPending(true);
-    window.location.assign(checkoutUrl);
+    router.push("/checkout");
   };
 
   return (
@@ -29,7 +24,7 @@ export const ButtonCheckout = ({ checkoutUrl, disabled }: ButtonCheckoutProps) =
       onClick={handleCheckout}
       className="w-full rounded-none bg-background-secondary p-2.5 h-full transition-all hover:bg-background-tertiary"
       loading={isPending}
-      disabled={disabled || !checkoutUrl}
+      disabled={disabled}
     >
       Continue
     </LoadingButton>

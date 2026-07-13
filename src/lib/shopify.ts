@@ -1061,3 +1061,168 @@ export async function updateCartDiscount(
 
   return mapShopifyCart(res.body.data?.cartDiscountCodesUpdate?.cart);
 }
+
+const adminAccessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+
+async function shopifyAdminFetch<T>({
+  query,
+  variables = {},
+}: {
+  query: string;
+  variables?: any;
+}): Promise<{ status: number; body: T }> {
+  if (!domain) {
+    throw new Error("Missing Shopify domain configuration.");
+  }
+  if (!adminAccessToken) {
+    throw new Error("Missing Shopify Admin API access token in environment variables.");
+  }
+  const endpoint = `https://${domain}/admin/api/2025-01/graphql.json`;
+
+  try {
+    const result = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": adminAccessToken,
+      },
+      body: JSON.stringify({ query, variables }),
+      cache: "no-store",
+    });
+
+    const body = await result.json();
+
+    if (body.errors) {
+      throw new Error(body.errors[0].message);
+    }
+
+    return {
+      status: result.status,
+      body,
+    };
+  } catch (e) {
+    console.error("Shopify Admin API fetch error:", e);
+    throw e;
+  }
+}
+
+export interface AdminOrderResult {
+  orderId: string;
+  orderName: string;
+}
+
+export async function createAdminOrder(
+  lineItems: { variantId: string; quantity: number }[],
+  shippingAddress: {
+    firstName: string;
+    lastName: string;
+    address1: string;
+    city: string;
+    province?: string;
+    country: string;
+    zip: string;
+    phone?: string;
+  },
+  email: string
+): Promise<AdminOrderResult> {
+  const draftOrderCreateMutation = `
+    mutation draftOrderCreate($input: DraftOrderInput!) {
+      draftOrderCreate(input: $input) {
+        draftOrder {
+          id
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  const draftOrderCompleteMutation = `
+    mutation draftOrderComplete($id: ID!) {
+      draftOrderComplete(id: $id) {
+        draftOrder {
+          order {
+            id
+            name
+          }
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  // Create Draft Order
+  const createRes = await shopifyAdminFetch<any>({
+    query: draftOrderCreateMutation,
+    variables: {
+      input: {
+        email,
+        lineItems: lineItems.map((item) => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+        })),
+        shippingAddress: {
+          firstName: shippingAddress.firstName,
+          lastName: shippingAddress.lastName,
+          address1: shippingAddress.address1,
+          city: shippingAddress.city,
+          province: shippingAddress.province || "",
+          country: shippingAddress.country,
+          zip: shippingAddress.zip,
+          phone: shippingAddress.phone || "",
+        },
+        billingAddress: {
+          firstName: shippingAddress.firstName,
+          lastName: shippingAddress.lastName,
+          address1: shippingAddress.address1,
+          city: shippingAddress.city,
+          province: shippingAddress.province || "",
+          country: shippingAddress.country,
+          zip: shippingAddress.zip,
+          phone: shippingAddress.phone || "",
+        },
+      },
+    },
+  });
+
+  const draftOrder = createRes.body.data?.draftOrderCreate?.draftOrder;
+  const createErrors = createRes.body.data?.draftOrderCreate?.userErrors;
+
+  if (createErrors && createErrors.length > 0) {
+    throw new Error(`Draft order creation failed: ${createErrors[0].message}`);
+  }
+
+  if (!draftOrder?.id) {
+    throw new Error("Draft order was not returned from Shopify.");
+  }
+
+  // Complete Draft Order (which marks it as paid and creates the real Order)
+  const completeRes = await shopifyAdminFetch<any>({
+    query: draftOrderCompleteMutation,
+    variables: {
+      id: draftOrder.id,
+    },
+  });
+
+  const completedDraft = completeRes.body.data?.draftOrderComplete?.draftOrder;
+  const completeErrors = completeRes.body.data?.draftOrderComplete?.userErrors;
+
+  if (completeErrors && completeErrors.length > 0) {
+    throw new Error(`Draft order completion failed: ${completeErrors[0].message}`);
+  }
+
+  const order = completedDraft?.order;
+  if (!order?.id || !order?.name) {
+    throw new Error("Completed order details were not returned from Shopify.");
+  }
+
+  return {
+    orderId: order.id,
+    orderName: order.name,
+  };
+}
