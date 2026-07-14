@@ -1,3 +1,4 @@
+// Google Sheets CMS Fetcher and Parser Helpers
 import { cache } from 'react';
 
 export interface BlogPost {
